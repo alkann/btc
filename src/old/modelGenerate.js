@@ -1,21 +1,21 @@
 const brain = require('brain.js');
 const fs = require('file-system');
-const iterations = 20000;
-const errorThresh = 0.0030;
-const netOptions = {
-    hiddenLayers: [72, 36, 6],
-    // activation: 'tanh'
-};
-const trainingData = [];
+const iterations = 10000;
+const errorThresh = 0.0001;
+const res = [];
+const resFile = [];
+let x = 0;
 
-fs.recurseSync('./data', [
+fs.recurseSync('./data2', [
     '*.json'
-], function(filepath) {
-    trainingData.push(...(require(`../../${filepath}`)));
+], function(filepath, c, filename) {
+    res.push(filename.split('.')[0]);
+    resFile.push(`../../${filepath}`);
 });
 
-function calculateMap() {
+function calculateMap(name) {
     const starttime = (new Date()).getTime()
+    const trainingData = require(resFile[x])
 
     console.log('Start Calculate Map');
     const trainingOptions = {
@@ -24,27 +24,39 @@ function calculateMap() {
         logPeriod: 1,
         epsilon: 1e-15,
         log: (details) => {
-            const time = Math.floor(((new Date()).getTime() - starttime) / details.iterations) / 1000;
-            const timeLeft = `${('0'+Math.floor(Math.floor((iterations - details.iterations) * time) / 3600)).slice(-2)}:${('0'+Math.floor((Math.floor((iterations - details.iterations) * time) % 3600) / 60)).slice(-2)}:${('0'+Math.floor(Math.floor((iterations - details.iterations) * time) % 60)).slice(-2)}`
+            const iteration = parseInt(details.split(',')[0].split('iterations: ')[1]);
+            const err = parseFloat(details.split('training error: ')[1]);
+
+            const time = Math.floor(((new Date()).getTime() - starttime) / iteration) / 1000;
+            const timeLeft = `${('0'+Math.floor(Math.floor((iterations - iteration) * time) / 3600)).slice(-2)}:${('0'+Math.floor((Math.floor((iterations - iteration) * time) % 3600) / 60)).slice(-2)}:${('0'+Math.floor(Math.floor((iterations - iteration) * time) % 60)).slice(-2)}`
 
             process.stdout.clearLine();  // clear current text
             process.stdout.cursorTo(0);
             process.stdout.write(
-                `${details.iterations} | ${details.error} | ${Math.floor(details.error / errorThresh * 100) / 100} | ${timeLeft}`
+                `${iteration} | ${err} | ${Math.floor(err / errorThresh * 100) / 100} | ${timeLeft}`
             );
 
-            if (details.iterations%200 === 0) {
+            if (iteration%200 === 0) {
                 console.log('')
             }
         }
     };
-    const net = new brain.NeuralNetwork(netOptions);
-    net
-        .trainAsync(trainingData, trainingOptions)
-        .then((res) => {
-            console.log(res);
-            fs.writeFile(`./models2/model.json`, JSON.stringify(net.toJSON()), function (err) {})
-        })
+    const net = new brain.recurrent.LSTMTimeStep({
+        inputSize: 4,
+        hiddenLayers: [32,16],
+        outputSize: 4,
+    });
+
+    console.log(name, trainingData[0])
+
+    net.train(trainingData, trainingOptions);
+
+    fs.writeFile(`./models2/${name}.json`, JSON.stringify(net.toJSON()), function (err) {})
+
+    x++
+    if(x < res.length) {
+        calculateMap(res[x]);
+    }
 }
 
-calculateMap();
+calculateMap(res[x]);

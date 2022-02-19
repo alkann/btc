@@ -102,163 +102,21 @@ function calculateName(name) {
         .then(function (response) {
             const objs = response.reverse();
             const len = objs.length;
+            const result = [];
+            const low = Math.min(...objs.map(o => o.low));
+            const high = Math.max(...objs.map(o => o.high)) - low;
 
             for(let i = 0;i<len;i++){
-                for(let k = i; (k<len && (k-i)<RAT);k++){
-                    const profit = objs[k].low/objs[i].high
-
-                    if(profit>PROF){
-                        const input = {
-                            open: [],
-                            high: [],
-                            low: [],
-                            close: [],
-                            volume: []
-                        };
-
-                        for(let l=-12; l<0;l++){
-                            if(i+l > 0){
-                                input.open.push(objs[i+l].open);
-                                input.high.push(objs[i+l].high);
-                                input.low.push(objs[i+l].low);
-                                input.close.push(objs[i+l].close);
-                                input.volume.push(objs[i+l].volume);
-                            } else {
-                                l=0;
-                            }
-                        }
-
-                        const priceL = Math.min(...input.low);
-                        const priceH = Math.max(...input.high) - priceL;
-                        const volumeL = Math.min(...input.volume);
-                        const volumeH = Math.max(...input.volume) - volumeL;
-
-
-                        input.open = input.open.map(io => (io-priceL)/priceH);
-                        input.high = input.high.map(ih => (ih-priceL)/priceH);
-                        input.low = input.low.map(il => (il-priceL)/priceH);
-                        input.close = input.close.map(ic => (ic-priceL)/priceH);
-                        input.volume = input.volume.map(iv => (iv-volumeL)/volumeH);
-                        input.prg = [];
-
-                        input.low.map((iL, index) => {
-                            const full = input.high[index]-iL;
-                            const interval = Math.abs(input.open[index]-input.close[index]);
-
-                            input.prg[index] = interval/full;
-                        });
-
-                        const res = [];
-                        res[0] = regression.linear(input.open, {order: 4, precision: 4}).equation[0];
-                        res[1] = regression.linear(input.high, {order: 4, precision: 4}).equation[0];
-                        res[2] = regression.linear(input.low, {order: 4, precision: 4}).equation[0];
-                        res[3] = regression.linear(input.close, {order: 4, precision: 4}).equation[0];
-                        res[4] = regression.linear(input.volume, {order: 4, precision: 4}).equation[0];
-                        res[5] = regression.linear(input.prg, {order: 4, precision: 4}).equation[0];
-
-                        const ln = input.volume.length-1
-
-                        arr.push({input: [
-                                ...res,
-                                input.open[ln],
-                                input.high[ln],
-                                input.low[ln],
-                                input.close[ln],
-                                input.volume[ln],
-                                input.prg[ln]
-                            ], output:[profit]})
-
-                        i+=(k-i);
-
-                    }else if(objs[k].low/objs[i].high < 0.99){
-                        const input = {
-                            open: [],
-                            high: [],
-                            low: [],
-                            close: [],
-                            volume: []
-                        };
-
-                        for(let l=-12; l<0;l++){
-                            if(i+l > 0){
-                                input.open.push(objs[i+l].open);
-                                input.high.push(objs[i+l].high);
-                                input.low.push(objs[i+l].low);
-                                input.close.push(objs[i+l].close);
-                                input.volume.push(objs[i+l].volume);
-                            } else {
-                                l=0;
-                            }
-                        }
-
-                        const priceL = Math.min(...input.low);
-                        const priceH = Math.max(...input.high) - priceL;
-                        const volumeL = Math.min(...input.volume);
-                        const volumeH = Math.max(...input.volume) - volumeL;
-
-                        input.open = input.open.map(io => (io-priceL)/priceH);
-                        input.high = input.high.map(ih => (ih-priceL)/priceH);
-                        input.low = input.low.map(il => (il-priceL)/priceH);
-                        input.close = input.close.map(ic => (ic-priceL)/priceH);
-                        input.volume = input.volume.map(iv => (iv-volumeL)/volumeH);
-                        input.prg = [];
-
-                        input.low.map((iL, index) => {
-
-                            const full = input.high[index]-iL;
-                            const interval = Math.abs(input.open[index]-input.close[index]);
-
-                            input.prg[index] = interval/full;
-
-                        });
-
-                        const res = [];
-                        res[0] = regression.linear(input.open, {order: 4, precision: 4}).equation[0];
-                        res[1] = regression.linear(input.high, {order: 4, precision: 4}).equation[0];
-                        res[2] = regression.linear(input.low, {order: 4, precision: 4}).equation[0];
-                        res[3] = regression.linear(input.close, {order: 4, precision: 4}).equation[0];
-                        res[4] = regression.linear(input.volume, {order: 4, precision: 4}).equation[0];
-                        res[5] = regression.linear(input.prg, {order: 4, precision: 4}).equation[0];
-
-                        const ln = input.volume.length-1
-                        arr2.push({input: [
-                                ...res,
-                                input.open[ln],
-                                input.high[ln],
-                                input.low[ln],
-                                input.close[ln],
-                                input.volume[ln],
-                                input.prg[ln]
-                            ], output:[objs[k].low/objs[i].high]})
-
-                        i+=(k-i);
-                    }
-                }
+                result.push([(objs[i].open-low)/high,(objs[i].high-low)/high,(objs[i].low-low)/high,(objs[i].close-low)/high]);
             }
 
             x++
             if(x < names.length){
                 console.log(`${x}/${names.length}`, `${names[x]}_USDT`, ((new Date().getTime())-time)*(names.length-x)/1000/x)
+                fs.writeFile(`./data2/${name}.json`, JSON.stringify(result), function (err) {})
                 calculateName((names[x]+'USDT').toLowerCase())
             } else {
-                const posLen = arr.length
-                const negLen = arr2.length
-                const rt = Math.floor(negLen/posLen);
-                console.log('posLen', posLen);
-                console.log('negLen', negLen);
-                console.log('rt', rt);
-                const result = [];
-
-                arr.map((a,index) =>  {
-                    result.push(a);
-                    result.push(arr2[index*Math.floor(rt/10)]);
-                    result.push(arr2[index*Math.floor(rt/9)]);
-                    result.push(arr2[index*Math.floor(rt/8)]);
-                    result.push(arr2[index*Math.floor(rt/7)]);
-                    result.push(arr2[index*Math.floor(rt/6)]);
-                })
-
-                fs.writeFile(`./data2/d.json`, JSON.stringify(result), function (err) {})
+                fs.writeFile(`./data2/${name}.json`, JSON.stringify(result), function (err) {})
             }
         })
 }
