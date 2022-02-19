@@ -166,7 +166,7 @@ function calculateName(name) {
                                 input.close[ln],
                                 input.volume[ln],
                                 input.prg[ln]
-                            ], output:[1]})
+                            ], output:[profit]})
 
                         i+=(k-i);
 
@@ -229,7 +229,7 @@ function calculateName(name) {
                                 input.close[ln],
                                 input.volume[ln],
                                 input.prg[ln]
-                            ], output:[0]})
+                            ], output:[objs[k].low/objs[i].high]})
 
                         i+=(k-i);
                     }
@@ -256,11 +256,6 @@ function calculateName(name) {
                     result.push(arr2[index*Math.floor(rt/8)]);
                     result.push(arr2[index*Math.floor(rt/7)]);
                     result.push(arr2[index*Math.floor(rt/6)]);
-                    result.push(arr2[index*Math.floor(rt/5)]);
-                    result.push(arr2[index*Math.floor(rt/4)]);
-                    result.push(arr2[index*Math.floor(rt/3)]);
-                    result.push(arr2[index*Math.floor(rt/2)]);
-                    result.push(arr2[index*Math.floor(rt)]);
                 })
 
                 fs.writeFile(`./data2/d.json`, JSON.stringify(result), function (err) {})
